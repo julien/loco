@@ -9,18 +9,19 @@ import (
 	"regexp"
 )
 
-const DEFAULT_PORT string = "8000"
+const defaultport string = "8000"
 
 var (
-	valid    *regexp.Regexp     = regexp.MustCompile(`\d{4}`)
-	upgrader websocket.Upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+	valid    = regexp.MustCompile(`\d{4}`)
+	upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	watcher  *fsnotify.Watcher
 )
 
-func Serve(port, root string) {
+// Start the server on specified port in specified root directory
+func Start(port, root string) {
 
 	if !valid.MatchString(port) {
-		port = DEFAULT_PORT
+		port = defaultport
 	}
 
 	var err error

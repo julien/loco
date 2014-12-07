@@ -15,5 +15,5 @@ func main() {
 	flag.StringVar(&root, "root", ".", "root directory")
 	flag.Parse()
 
-	http.Serve(port, root)
+	http.Start(port, root)
 }
