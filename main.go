@@ -6,23 +6,29 @@ import (
 	"github.com/gorilla/websocket"
 	"gopkg.in/fsnotify.v1"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 )
 
 const defaultport string = "8000"
 
 var (
-	valid    = regexp.MustCompile(`\d{4}`)
-	upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
-	watcher  *fsnotify.Watcher
-	port     string
-	root     string
+	valid     = regexp.MustCompile(`\d{4}`)
+	hidden    = regexp.MustCompile(`^\.`)
+	upgrader  = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+	clients   = make(map[*websocket.Conn]bool)
+	watcher   *fsnotify.Watcher
+	port      string
+	root      string
+	recursive bool
 )
 
 func main() {
 	flag.StringVar(&port, "port", "8000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
+	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
 	flag.Parse()
 
 	if !valid.MatchString(port) {
@@ -34,14 +40,10 @@ func main() {
 	if err != nil {
 		fmt.Printf("Watcher create error %s\n", err)
 	}
-	defer watcher.Close()
-
-	err = watcher.Add(root)
-	if err != nil {
-		fmt.Printf("Watcher add error %s\n", err)
-	}
-
 	fmt.Println("Watching for file changes")
+	defer watcher.Close()
+	add(root)
+
 	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
 
 	http.HandleFunc("/livereload.js", livereload)
@@ -50,10 +52,41 @@ func main() {
 	http.ListenAndServe(":"+port, nil)
 }
 
+func add(root string) {
+	var files []string
+	files = append(files, root)
+
+	if recursive == true {
+		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if info.IsDir() && !hidden.MatchString(path) {
+				files = append(files, path)
+			}
+			return nil
+		})
+	}
+
+	for i := 0; i < len(files); i++ {
+		if err := watcher.Add(files[i]); err != nil {
+			fmt.Printf("Watcher add error %s\n", err)
+			continue
+		}
+		fmt.Printf("Added %s to watcher\n", files[i])
+	}
+}
+
 func livereload(w http.ResponseWriter, r *http.Request) {
 	script := `(function () {
-  var ws = new WebSocket('ws://localhost:%s/ws');
-  ws.onmessage = function () { document.location.reload(); };
+  window.onload = function () {
+    var ws = new WebSocket('ws://localhost:%s/ws');
+    ws.onopen = function () { console.log("open");  };
+    // ws.close = function ()  { console.log("close"); };
+    // ws.error = function ()  { console.log("error"); };
+    ws.onmessage = function () {
+      // console.log('got message');
+      ws.close();
+      location = location;
+    };
+  };
 }())
     `
 	s := []byte(fmt.Sprintf(script, port))
@@ -72,7 +105,10 @@ func socket(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error %s\n", err)
 		return
 	}
+
+	clients[c] = true
 	go writer(c)
+	reader(c)
 }
 
 func writer(c *websocket.Conn) {
@@ -81,12 +117,34 @@ func writer(c *websocket.Conn) {
 		case ev := <-watcher.Events:
 			if ev.Op&fsnotify.Write == fsnotify.Write {
 				fmt.Printf("Modified file: %s\n", ev.Name)
-				if err := c.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
-					return
+
+				for cl := range clients {
+					// fmt.Println("C", b)
+					if err := cl.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
+						fmt.Printf("Error writing message: %s\n", err)
+						return
+					}
+
 				}
 			}
 		case err := <-watcher.Errors:
 			fmt.Printf("Watch error %s:\n", err)
+		}
+	}
+}
+
+func reader(c *websocket.Conn) {
+	for {
+		_, _, err := c.ReadMessage()
+		if err != nil {
+			fmt.Printf("ReadMessage error: %s\n", err)
+
+			if _, b := clients[c]; b {
+				clients[c] = false
+				delete(clients, c)
+			}
+
+			break
 		}
 	}
 }
