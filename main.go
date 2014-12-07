@@ -42,8 +42,6 @@ func main() {
 		port = defaultport
 	}
 
-	fmt.Println(excludes)
-
 	var err error
 	watcher, err = fsnotify.NewWatcher()
 	if err != nil {
@@ -83,7 +81,7 @@ func add(root string) {
 		time.Sleep(10 * time.Millisecond)
 
 		if err := watcher.Add(files[i]); err != nil {
-			fmt.Printf("Watcher add error %s\n", err)
+			// fmt.Printf("Watcher add error %s\n", err)
 			return
 		}
 		fmt.Printf("Added %s to watcher\n", files[i])
@@ -114,7 +112,7 @@ func socket(w http.ResponseWriter, r *http.Request) {
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("Error %s\n", err)
+		fmt.Printf("Upgdrader error %s\n", err)
 		return
 	}
 
@@ -133,7 +131,7 @@ func writer(c *websocket.Conn) {
 				for cl := range clients {
 					// fmt.Println("C", b)
 					if err := cl.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
-						fmt.Printf("Error writing message: %s\n", err)
+						// fmt.Printf("Error writing message: %s\n", err)
 						return
 					}
 
@@ -149,8 +147,6 @@ func reader(c *websocket.Conn) {
 	for {
 		_, _, err := c.ReadMessage()
 		if err != nil {
-			fmt.Printf("ReadMessage error: %s\n", err)
-
 			if _, b := clients[c]; b {
 				clients[c] = false
 				delete(clients, c)
