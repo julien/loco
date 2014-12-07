@@ -23,8 +23,9 @@ Usage
 + If you want to be notified about file changes
   include this `script` tag:
 
-  `
+  ```html
   <!-- NOTE: change 8000 to the port you used to start the server -->
   <script src="http://localhost:8000/livereload.js"></script>
-  `
+  ```
+
 
