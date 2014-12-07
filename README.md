@@ -18,7 +18,7 @@ Usage
 
 + Start the server:
 
-  `lr --port 8000 --root . # flags are optional`
+  `lr -port 8000 -root . -recursive -excludes=node_modules,bower_components # flags are optional`
 
 + If you want to be notified about file changes
   include this `script` tag:

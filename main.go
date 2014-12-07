@@ -10,9 +10,14 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
+	"time"
 )
 
-const defaultport string = "8000"
+const (
+	defaultport string = "8000"
+	maxfiles           = 30
+)
 
 var (
 	valid     = regexp.MustCompile(`\d{4}`)
@@ -23,17 +28,21 @@ var (
 	port      string
 	root      string
 	recursive bool
+	excludes  string
 )
 
 func main() {
 	flag.StringVar(&port, "port", "8000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
 	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
+	flag.StringVar(&excludes, "excludes", "", "directories to exclude when watching")
 	flag.Parse()
 
 	if !valid.MatchString(port) {
 		port = defaultport
 	}
+
+	fmt.Println(excludes)
 
 	var err error
 	watcher, err = fsnotify.NewWatcher()
@@ -58,17 +67,24 @@ func add(root string) {
 
 	if recursive == true {
 		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-			if info.IsDir() && !hidden.MatchString(path) {
+			if info.IsDir() && !hidden.MatchString(path) && !strings.Contains(excludes, path) {
 				files = append(files, path)
 			}
 			return nil
 		})
 	}
 
-	for i := 0; i < len(files); i++ {
+	max := len(files)
+	if len(files) > maxfiles {
+		max = maxfiles
+	}
+
+	for i := 0; i < max; i++ {
+		time.Sleep(10 * time.Millisecond)
+
 		if err := watcher.Add(files[i]); err != nil {
 			fmt.Printf("Watcher add error %s\n", err)
-			continue
+			return
 		}
 		fmt.Printf("Added %s to watcher\n", files[i])
 	}
