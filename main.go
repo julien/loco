@@ -78,11 +78,7 @@ func livereload(w http.ResponseWriter, r *http.Request) {
 	script := `(function () {
   window.onload = function () {
     var ws = new WebSocket('ws://localhost:%s/ws');
-    ws.onopen = function () { console.log("open");  };
-    // ws.close = function ()  { console.log("close"); };
-    // ws.error = function ()  { console.log("error"); };
     ws.onmessage = function () {
-      // console.log('got message');
       ws.close();
       location = location;
     };
