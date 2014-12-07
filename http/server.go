@@ -3,18 +3,18 @@ package http
 import (
 	"github.com/gorilla/websocket"
 	"gopkg.in/fsnotify.v1"
+	"log"
 	"net/http"
 	"path"
 	"regexp"
-    "log"
 )
 
 const DEFAULT_PORT string = "8000"
 
 var (
-	valid       *regexp.Regexp     = regexp.MustCompile(`\d{4}`)
-	upgrader    websocket.Upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
-	watcher     *fsnotify.Watcher
+	valid    *regexp.Regexp     = regexp.MustCompile(`\d{4}`)
+	upgrader websocket.Upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+	watcher  *fsnotify.Watcher
 )
 
 func Serve(port, root string) {
@@ -22,7 +22,6 @@ func Serve(port, root string) {
 	if !valid.MatchString(port) {
 		port = DEFAULT_PORT
 	}
-
 
 	var err error
 	watcher, err = fsnotify.NewWatcher()
@@ -36,8 +35,8 @@ func Serve(port, root string) {
 		log.Printf("Watcher add error %s\n", err)
 	}
 
-    log.Println("Watching for file changes")
-    log.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
+	log.Println("Watching for file changes")
+	log.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
 
 	http.HandleFunc("/ws", socket)
 	http.Handle("/", http.FileServer(http.Dir(root)))
