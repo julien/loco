@@ -4,14 +4,14 @@ COVPROFILE := coverage.out
 default: test
 
 lint:
-	-@echo --- Linting
-	-@go vet ./...
-	-@golint ./...
+	go fmt ./...
+	go vet ./...
+	golint ./...
 
 test: lint
-	-@echo --- Launcing tests
 	-@go test -coverprofile=$(COVPROFILE)
 
 coverage: test
+	-@echo ---
 	go tool cover -html=$(COVPROFILE)
 

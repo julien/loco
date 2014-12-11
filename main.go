@@ -31,16 +31,16 @@ var (
 	excludes  string
 )
 
-func main() {
+func init() {
 	flag.StringVar(&port, "port", "8000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
 	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
 	flag.StringVar(&excludes, "excludes", "", "directories to exclude when watching")
-	flag.Parse()
+}
 
-	if !valid.MatchString(port) {
-		port = defaultport
-	}
+func main() {
+	flag.Parse()
+	checkPort(port)
 
 	var err error
 	watcher, err = fsnotify.NewWatcher()
@@ -58,6 +58,13 @@ func main() {
 	http.Handle("/", fileHandler(root))
 
 	http.ListenAndServe(":"+port, nil)
+}
+
+func checkPort(port string) string {
+	if !valid.MatchString(port) {
+		port = defaultport
+	}
+	return port
 }
 
 func add(root string) {
@@ -123,7 +130,8 @@ func socketHandler() http.Handler {
 
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			fmt.Printf("Upgdrader error %s\n", err)
+			// fmt.Printf("Upgdrader error %s\n", err)
+			http.Error(w, "Internal Server Error", 500)
 			return
 		}
 
