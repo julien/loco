@@ -53,9 +53,10 @@ func main() {
 
 	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
 
-	http.HandleFunc("/livereload.js", livereload)
-	http.HandleFunc("/ws", socket)
-	http.Handle("/", http.FileServer(http.Dir(root)))
+	http.Handle("/ws", socketHandler())
+	http.Handle("/livereload.js", scriptHandler())
+	http.Handle("/", fileHandler(root))
+
 	http.ListenAndServe(":"+port, nil)
 }
 
@@ -88,37 +89,48 @@ func add(root string) {
 	}
 }
 
-func livereload(w http.ResponseWriter, r *http.Request) {
-	script := `(function () {
-  window.onload = function () {
-    var ws = new WebSocket('ws://localhost:%s/ws');
-    ws.onmessage = function () {
-      ws.close();
-      location = location;
-    };
-  };
-}())
-    `
-	s := []byte(fmt.Sprintf(script, port))
-	w.Header().Set("Content-Type", "application/javascript")
-	w.Write(s)
+func fileHandler(root string) http.Handler {
+	return http.FileServer(http.Dir(root))
 }
 
-func socket(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
+func scriptHandler() http.Handler {
 
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Printf("Upgdrader error %s\n", err)
-		return
-	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		script := `(function () {
+      window.onload = function () {
+        var ws = new WebSocket('ws://localhost:%s/ws');
+        ws.onmessage = function () {
+          ws.close();
+          location = location;
+        };
+      };
+    }())
+        `
+		s := []byte(fmt.Sprintf(script, port))
+		w.Header().Set("Content-Type", "application/javascript")
+		w.Write(s)
+	})
+}
 
-	clients[c] = true
-	go writer(c)
-	reader(c)
+func socketHandler() http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != "GET" {
+			http.Error(w, "Method not allowed", 405)
+			return
+		}
+
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			fmt.Printf("Upgdrader error %s\n", err)
+			return
+		}
+
+		clients[c] = true
+		go writer(c)
+		reader(c)
+	})
 }
 
 func writer(c *websocket.Conn) {
