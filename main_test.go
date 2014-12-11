@@ -1,9 +1,6 @@
 package main
 
 import (
-	//"fmt"
-	// "io/ioutil"
-	// "log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,13 +12,8 @@ func TestFileHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
-		t.Errorf("File server not working: %v", w.Code)
+		t.Errorf("got: %v", w.Code, "wanted 200")
 	}
-	// body, err := ioutil.ReadAll(w.Body)
-	// if err != nil {
-	//     fmt.Println(err)
-	// }
-	// fmt.Println(string(body))
 }
 
 func TestScriptHandler(t *testing.T) {
@@ -34,10 +26,22 @@ func TestScriptHandler(t *testing.T) {
 	ct := w.Header()["Content-Type"]
 
 	if w.Code != http.StatusOK {
-		t.Errorf("got: %v", w.Code, "want 200")
+		t.Errorf("got: %v want 200", w.Code)
 	}
 
 	if len(ct) < 1 || ct[0] != "application/javascript" {
 		t.Errorf("got %v", ct[0], "want application/javascript")
+	}
+}
+
+func TestSocketHandler(t *testing.T) {
+	handler := socketHandler()
+
+	req, _ := http.NewRequest("GET", "/ws", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("got: %v want 200", w.Code)
 	}
 }
