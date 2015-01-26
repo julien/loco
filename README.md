@@ -28,10 +28,3 @@ Usage
   <script src="http://localhost:8000/livereload.js"></script>
   ```
 
-TODO
-====
-
-Server struct
-Watcher struct
-TestMain
-Benchmark
