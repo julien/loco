@@ -7,9 +7,18 @@ with [Go](http://golang.org)
 Usage
 =====
 
-+ Get it:
+```
+Usage of lr:
+  -cache=30: number of days for cache/expires header
+  -excludes="": directories to exclude when watching
+  -port="8000": default port
+  -recursive=false: watch for file changes in all directories
+  -root=".": root directory
+```
 
-  `go get github.com/julien/lr`
++ Install with:
+
+  `go install github.com/julien/lr`
 
 
 + Navigate to a directory you want to use as the "root" directory:
@@ -28,4 +37,4 @@ Usage
   <script src="http://localhost:8000/livereload.js"></script>
   ```
 
-Check the [report card](http://goreportcard.com/report/julien/lr)
++ Check the [report card](http://goreportcard.com/report/julien/lr)
