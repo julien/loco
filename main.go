@@ -59,7 +59,10 @@ func main() {
 		fmt.Printf("Watcher create error %s\n", err)
 	}
 	fmt.Println("Watching for file changes")
-	addFiles(root)
+
+	fileChan := make(chan string)
+	go addFiles(root, fileChan)
+
 	defer watcher.Close()
 
 	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
@@ -78,7 +81,7 @@ func checkPort(port string) string {
 	return port
 }
 
-func addFiles(root string) {
+func addFiles(root string, fileChan chan string) {
 	var files []string
 	files = append(files, root)
 
@@ -95,7 +98,6 @@ func addFiles(root string) {
 	if len(files) > maxfiles {
 		max = maxfiles
 	}
-	fmt.Printf("Files: %v\n", files)
 
 	for i := 0; i < max; i++ {
 		time.Sleep(10 * time.Millisecond)
@@ -104,7 +106,8 @@ func addFiles(root string) {
 			fmt.Printf("Watcher add error %s\n", err)
 			return
 		}
-		// 	fmt.Printf("Added %s to watcher\n", files[i])
+		fileChan <- files[i]
+		fmt.Printf("Added %s to watcher\n", files[i])
 	}
 }
 
