@@ -28,3 +28,4 @@ Usage
   <script src="http://localhost:8000/livereload.js"></script>
   ```
 
+Check the [report card](http://goreportcard.com/report/julien/lr)
