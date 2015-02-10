@@ -11,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +20,7 @@ import (
 
 const (
 	defaultport = "3000"
-	maxfiles    = 30
+	maxfiles    = 300
 	script      = `(function () { window.addEventListener('load', function () {
   var ws = new WebSocket('ws://localhost:%s/ws');
   ws.onmessage = function () { ws.close(); location = location; };
@@ -29,14 +28,14 @@ const (
 )
 
 var (
-	valid     = regexp.MustCompile(`\d{4}`)
-	hidden    = regexp.MustCompile(`^\.`)
-	upgrader  = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
-	clients   = make(map[*websocket.Conn]bool)
-	watcher   *fsnotify.Watcher
-	port      string
-	root      string
-	cache     int
+	valid    = regexp.MustCompile(`\d{4}`)
+	hidden   = regexp.MustCompile(`^\.`)
+	upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+	clients  = make(map[*websocket.Conn]bool)
+	watcher  *fsnotify.Watcher
+	port     string
+	root     string
+	// cache     int
 	recursive bool
 	excludes  string
 )
@@ -44,7 +43,7 @@ var (
 func init() {
 	flag.StringVar(&port, "port", "3000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
-	flag.IntVar(&cache, "cache", 30, "number of days for cache/expires header")
+	// flag.IntVar(&cache, "cache", 30, "number of days for cache/expires header")
 	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
 	flag.StringVar(&excludes, "excludes", "", "directories to exclude when watching")
 }
@@ -174,22 +173,22 @@ func reader(c *websocket.Conn) {
 	}
 }
 
-func cacheHandler(days int, next http.Handler) http.Handler {
-
-	if days < 1 {
-		days = 1
-	}
-	age := days * 24 * 60 * 60 * 1000
-	t := time.Now().Add(time.Duration(time.Hour * 24 * time.Duration(days)))
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(age))
-		w.Header().Set("Expires", t.Format(time.RFC1123Z))
-
-		next.ServeHTTP(w, r)
-	})
-}
+// func cacheHandler(days int, next http.Handler) http.Handler {
+//
+// 	if days < 1 {
+// 		days = 1
+// 	}
+// 	age := days * 24 * 60 * 60 * 1000
+// 	t := time.Now().Add(time.Duration(time.Hour * 24 * time.Duration(days)))
+//
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//
+// 		w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(age))
+// 		w.Header().Set("Expires", t.Format(time.RFC1123Z))
+//
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
 
 type gzResponseWriter struct {
 	io.Writer
