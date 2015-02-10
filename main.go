@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	defaultport = "8000"
+	defaultport = "3000"
 	maxfiles    = 30
 	script      = `(function () { window.addEventListener('load', function () {
   var ws = new WebSocket('ws://localhost:%s/ws');
@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&port, "port", "8000", "default port")
+	flag.StringVar(&port, "port", "3000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
 	flag.IntVar(&cache, "cache", 30, "number of days for cache/expires header")
 	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
@@ -67,7 +67,7 @@ func main() {
 
 	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
 
-	http.Handle("/", gzHandler(cacheHandler(cache, fileHandler(root))))
+	http.Handle("/", gzHandler(fileHandler(root)))
 	http.Handle("/ws", socketHandler())
 	http.Handle("/livereload.js", scriptHandler())
 
