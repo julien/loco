@@ -15,3 +15,5 @@ coverage: test
 	-@echo ---
 	go tool cover -html=$(COVPROFILE)
 
+build:
+	go build -o loco

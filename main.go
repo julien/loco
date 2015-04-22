@@ -1,17 +1,13 @@
 package main
 
 import (
-	"compress/gzip"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -35,41 +31,48 @@ var (
 	watcher  *fsnotify.Watcher
 	port     string
 	root     string
-	// cache     int
-	recursive bool
-	excludes  string
 )
 
 func init() {
 	flag.StringVar(&port, "port", "3000", "default port")
 	flag.StringVar(&root, "root", ".", "root directory")
-	// flag.IntVar(&cache, "cache", 30, "number of days for cache/expires header")
-	flag.BoolVar(&recursive, "recursive", false, "watch for file changes in all directories")
-	flag.StringVar(&excludes, "excludes", "", "directories to exclude when watching")
 }
 
 func main() {
 	flag.Parse()
 	checkPort(port)
 
-	var err error
-	watcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		fmt.Printf("Watcher create error %s\n", err)
+	globs := flag.Args()
+	if len(globs) > 0 {
+		var files []string
+		for _, glob := range globs {
+
+			matches, err := filepath.Glob(glob)
+			if err != nil {
+				log.Fatal(err)
+			}
+			files = append(files, matches...)
+		}
+
+		if len(files) > 0 {
+			var err error
+			watcher, err = fsnotify.NewWatcher()
+			if err != nil {
+				fmt.Printf("Watcher create error %s\n", err)
+			}
+			fmt.Println("Watching for file changes")
+
+			fileChan := make(chan string)
+			go addFiles(files, fileChan)
+			defer watcher.Close()
+
+			http.Handle("/ws", socketHandler())
+			http.Handle("/livereload.js", scriptHandler())
+		}
 	}
-	fmt.Println("Watching for file changes")
-
-	fileChan := make(chan string)
-	go addFiles(root, fileChan)
-
-	defer watcher.Close()
 
 	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
-
 	http.Handle("/", gzHandler(fileHandler(root)))
-	http.Handle("/ws", socketHandler())
-	http.Handle("/livereload.js", scriptHandler())
-
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -80,23 +83,13 @@ func checkPort(port string) string {
 	return port
 }
 
-func addFiles(root string, fileChan chan string) {
-	var files []string
-	files = append(files, root)
-
-	if recursive == true {
-		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-			if info.IsDir() && !hidden.MatchString(path) && !strings.Contains(excludes, path) {
-				files = append(files, path)
-			}
-			return nil
-		})
-	}
-
+func addFiles(files []string, fileChan chan string) {
 	max := len(files)
 	if len(files) > maxfiles {
 		max = maxfiles
 	}
+
+	fmt.Printf("max %d\n", max)
 
 	for i := 0; i < max; i++ {
 		time.Sleep(10 * time.Millisecond)
@@ -171,49 +164,4 @@ func reader(c *websocket.Conn) {
 			break
 		}
 	}
-}
-
-// func cacheHandler(days int, next http.Handler) http.Handler {
-//
-// 	if days < 1 {
-// 		days = 1
-// 	}
-// 	age := days * 24 * 60 * 60 * 1000
-// 	t := time.Now().Add(time.Duration(time.Hour * 24 * time.Duration(days)))
-//
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//
-// 		w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(age))
-// 		w.Header().Set("Expires", t.Format(time.RFC1123Z))
-//
-// 		next.ServeHTTP(w, r)
-// 	})
-// }
-
-type gzResponseWriter struct {
-	io.Writer
-	http.ResponseWriter
-}
-
-func (w gzResponseWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
-}
-
-func gzHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		w.Header().Set("Content-Encoding", "gzip")
-
-		gz := gzip.NewWriter(w)
-		defer gz.Close()
-
-		gw := gzResponseWriter{Writer: gz, ResponseWriter: w}
-		next.ServeHTTP(gw, r)
-
-	})
 }
