@@ -1,5 +1,5 @@
-lr
-==
+loco
+====
 
 An example http/livereload server
 with [Go](http://golang.org)
@@ -8,7 +8,7 @@ Usage
 =====
 
 ```
-Usage of lr:
+Usage of loco:
   -cache=30: number of days for cache/expires header
   -excludes="": directories to exclude when watching
   -port="8000": default port
@@ -18,7 +18,7 @@ Usage of lr:
 
 + Install with:
 
-  `go install github.com/julien/lr`
+  `go install github.com/julien/loco`
 
 
 + Navigate to a directory you want to use as the "root" directory:
@@ -27,7 +27,7 @@ Usage of lr:
 
 + Start the server:
 
-  `lr -port 8000 -root . -recursive -excludes=node_modules,bower_components # flags are optional`
+  `loco -port 8000 -root . -recursive -excludes=node_modules,bower_components # flags are optional`
 
 + If you want to be notified about file changes
   include this `script` tag:
@@ -37,4 +37,4 @@ Usage of lr:
   <script src="http://localhost:8000/livereload.js"></script>
   ```
 
-+ Check the [report card](http://goreportcard.com/report/julien/lr)
++ Check the [report card](http://goreportcard.com/report/julien/loco)
