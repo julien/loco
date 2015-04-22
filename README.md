@@ -7,12 +7,13 @@ with [Go](http://golang.org)
 Usage
 =====
 
+```shell
+loco -port=PORT -root=ROOT_DIRECTORY FILES
 ```
+
+```shell
 Usage of loco:
-  -cache=30: number of days for cache/expires header
-  -excludes="": directories to exclude when watching
-  -port="8000": default port
-  -recursive=false: watch for file changes in all directories
+  -port="3000": default port
   -root=".": root directory
 ```
 
@@ -27,7 +28,7 @@ Usage of loco:
 
 + Start the server:
 
-  `loco -port 8000 -root . -recursive -excludes=node_modules,bower_components # flags are optional`
+  `loco -port 8000 -root . *.js # files are optional`
 
 + If you want to be notified about file changes
   include this `script` tag:
