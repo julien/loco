@@ -58,9 +58,9 @@ func main() {
 			var err error
 			watcher, err = fsnotify.NewWatcher()
 			if err != nil {
-				fmt.Printf("Watcher create error %s\n", err)
+				fmt.Printf("could not create watcher\n", err)
 			}
-			fmt.Println("Watching for file changes")
+			fmt.Println("watching for file changes")
 
 			fileChan := make(chan string)
 			go addFiles(files, fileChan)
@@ -71,7 +71,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Starting server: 0.0.0.0:%s - Root directory: %s\n", port, path.Dir(root))
+	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
 	http.Handle("/", gzHandler(fileHandler(root)))
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
@@ -89,17 +89,14 @@ func addFiles(files []string, fileChan chan string) {
 		max = maxfiles
 	}
 
-	fmt.Printf("max %d\n", max)
-
 	for i := 0; i < max; i++ {
 		time.Sleep(10 * time.Millisecond)
 
 		if err := watcher.Add(files[i]); err != nil {
-			fmt.Printf("Watcher add error %s\n", err)
 			return
 		}
 		fileChan <- files[i]
-		fmt.Printf("Added %s to watcher\n", files[i])
+		fmt.Printf("added %s to watcher\n", files[i])
 	}
 }
 
@@ -125,7 +122,7 @@ func socketHandler() http.Handler {
 
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			fmt.Printf("Upgdrader error %s\n", err)
+			fmt.Printf("websocket error %s\n", err)
 			return
 		}
 
@@ -140,7 +137,7 @@ func writer(c *websocket.Conn) {
 		select {
 		case ev := <-watcher.Events:
 			if ev.Op&fsnotify.Write == fsnotify.Write {
-				fmt.Printf("Modified file: %s\n", ev.Name)
+				fmt.Printf("modified file: %s\n", ev.Name)
 				for cl := range clients {
 					if err := cl.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
 						return
@@ -148,7 +145,7 @@ func writer(c *websocket.Conn) {
 				}
 			}
 		case err := <-watcher.Errors:
-			fmt.Printf("Watch error %s:\n", err)
+			fmt.Printf("watch error %s:\n", err)
 		}
 	}
 }
