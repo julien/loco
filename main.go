@@ -44,6 +44,14 @@ func main() {
 	checkPort(port)
 
 	globs := flag.Args()
+	checkGlobs(globs)
+
+	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
+	http.Handle("/", gzHandler(fileHandler(root)))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func checkGlobs(globs []string) ([]string, error) {
 	if len(globs) > 0 {
 		var files []string
 		for _, glob := range globs {
@@ -51,6 +59,7 @@ func main() {
 			matches, err := filepath.Glob(glob)
 			if err != nil {
 				log.Fatal(err)
+				return nil, err
 			}
 			files = append(files, matches...)
 		}
@@ -60,6 +69,7 @@ func main() {
 			watcher, err = fsnotify.NewWatcher()
 			if err != nil {
 				fmt.Printf("could not create watcher %s\n", err)
+				return nil, err
 			}
 			fmt.Println("watching for file changes")
 
@@ -69,12 +79,11 @@ func main() {
 
 			http.Handle("/ws", socketHandler())
 			http.Handle("/livereload.js", scriptHandler())
+
+			return files, nil
 		}
 	}
-
-	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
-	http.Handle("/", gzHandler(fileHandler(root)))
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	return nil, nil
 }
 
 func checkPort(port string) string {
