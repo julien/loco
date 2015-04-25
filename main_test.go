@@ -2,12 +2,29 @@ package main
 
 import (
 	// "fmt"
+
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	// "github.com/gorilla/websocket"
 	// "sync"
 )
+
+func TestMain(m *testing.M) {
+
+	// check defaults
+	if port != "3000" {
+		log.Fatalf("expected \"3000\" got %v", port)
+		os.Exit(1)
+	}
+	// if root != "." {
+	// 	m.Errorf("got %v want \".\"", root)
+	// }
+
+	os.Exit(m.Run())
+}
 
 // var once sync.Once
 
@@ -74,5 +91,43 @@ func TestSocketHandlerUpgrader(t *testing.T) {
 
 	if w.Code == http.StatusOK {
 		t.Errorf("got: %v wanted an error", w.Code)
+	}
+}
+
+func TestGZWithHeader(t *testing.T) {
+	handler := gzHandler(fileHandler("."))
+	req, _ := http.NewRequest("GET", "/test.js", nil)
+	req.Header["Accept-Encoding"] = []string{"gzip"}
+
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("got: %v want 200", w.Code)
+	}
+
+	if h, ok := w.HeaderMap["Content-Encoding"]; ok != true {
+		t.Errorf("got: %v want \"Content-Encoding\"", ok)
+	} else if h[0] != "gzip" {
+		t.Errorf("got: %v want \"gzip\"", h[0])
+
+	}
+}
+
+func TestGZWithoutHeader(t *testing.T) {
+	handler := gzHandler(fileHandler("."))
+	req, _ := http.NewRequest("GET", "/test.js", nil)
+
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("got: %v want 200", w.Code)
+	}
+
+	if _, ok := w.HeaderMap["Content-Encoding"]; ok != false {
+		t.Errorf("got \"Content-Encoding\"")
 	}
 }

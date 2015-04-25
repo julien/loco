@@ -1,13 +1,16 @@
 package main
 
 import (
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,7 +19,6 @@ import (
 
 const (
 	defaultport = "3000"
-	maxfiles    = 300
 	script      = `(function () { window.addEventListener('load', function () {
   var ws = new WebSocket('ws://localhost:%s/ws');
   ws.onmessage = function () { ws.close(); location = location; };
@@ -25,7 +27,6 @@ const (
 
 var (
 	valid    = regexp.MustCompile(`\d{4}`)
-	hidden   = regexp.MustCompile(`^\.`)
 	upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	clients  = make(map[*websocket.Conn]bool)
 	watcher  *fsnotify.Watcher
@@ -58,7 +59,7 @@ func main() {
 			var err error
 			watcher, err = fsnotify.NewWatcher()
 			if err != nil {
-				fmt.Printf("could not create watcher\n", err)
+				fmt.Printf("could not create watcher %s\n", err)
 			}
 			fmt.Println("watching for file changes")
 
@@ -84,12 +85,8 @@ func checkPort(port string) string {
 }
 
 func addFiles(files []string, fileChan chan string) {
-	max := len(files)
-	if len(files) > maxfiles {
-		max = maxfiles
-	}
 
-	for i := 0; i < max; i++ {
+	for i := 0; i < len(files); i++ {
 		time.Sleep(10 * time.Millisecond)
 
 		if err := watcher.Add(files[i]); err != nil {
@@ -113,6 +110,36 @@ func scriptHandler() http.Handler {
 	})
 }
 
+// gzip
+type gzResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func gzHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		w.Header().Set("Content-Encoding", "gzip")
+
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+
+		gw := gzResponseWriter{Writer: gz, ResponseWriter: w}
+		next.ServeHTTP(gw, r)
+
+	})
+}
+
+// websocket
 func socketHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {

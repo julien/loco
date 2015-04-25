@@ -1,7 +1,7 @@
 loco
 ====
 
-![Buidl status](https://circleci.com/gh/julien/loco.png?circle-token=722cb47155b6d2b3983203591655815031c46b08)
+!(https://circleci.com/gh/julien/loco.png?circle-token=722cb47155b6d2b3983203591655815031c46b08)
 
 
 An example http/livereload server
