@@ -42,45 +42,6 @@ func TestBadPort(t *testing.T) {
 	}
 }
 
-func TestExistingGlobs(t *testing.T) {
-
-	files, err := checkGlobs([]string{"*.js"})
-	if err != nil {
-		t.Errorf("got %v", err)
-	}
-
-	if len(files) != 1 {
-		t.Errorf("got %d want 1", len(files))
-	}
-
-	if watcher == nil {
-		t.Errorf("got %v want watcher", watcher)
-	}
-}
-
-func TestNilGlobs(t *testing.T) {
-
-	files, err := checkGlobs([]string{})
-	if err != nil {
-		t.Errorf("got %v", err)
-	}
-
-	if len(files) != 0 {
-		t.Errorf("got %d want 0", len(files))
-	}
-
-}
-
-func TestErrGlobs(t *testing.T) {
-	files, err := checkGlobs([]string{"@#**?:\\d+", "c:\\¿?:w/windows\"system32"})
-	if err != nil {
-		t.Errorf("got %v", err)
-	}
-	if len(files) != 0 {
-		t.Errorf("got %d want 0", len(files))
-	}
-}
-
 func TestFileHandler(t *testing.T) {
 	handler := fileHandler(".")
 	req, _ := http.NewRequest("GET", "", nil)

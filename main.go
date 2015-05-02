@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"gopkg.in/fsnotify.v1"
@@ -32,6 +31,7 @@ var (
 	watcher  *fsnotify.Watcher
 	port     string
 	root     string
+	reload   = make(chan bool)
 )
 
 func init() {
@@ -44,46 +44,49 @@ func main() {
 	checkPort(port)
 
 	globs := flag.Args()
-	checkGlobs(globs)
 
-	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
-	http.Handle("/", gzHandler(fileHandler(root)))
-	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
-func checkGlobs(globs []string) ([]string, error) {
+	var files []string
 	if len(globs) > 0 {
-		var files []string
 		for _, glob := range globs {
 
 			matches, err := filepath.Glob(glob)
 			if err != nil {
 				log.Fatal(err)
-				return nil, err
 			}
 			files = append(files, matches...)
 		}
-
-		if len(files) > 0 {
-			var err error
-			watcher, err = fsnotify.NewWatcher()
-			if err != nil {
-				fmt.Printf("could not create watcher %s\n", err)
-				return nil, err
-			}
-			fmt.Println("watching for file changes")
-
-			fileChan := make(chan string)
-			go addFiles(files, fileChan)
-			defer watcher.Close()
-
-			http.Handle("/ws", socketHandler())
-			http.Handle("/livereload.js", scriptHandler())
-
-			return files, nil
-		}
 	}
-	return nil, nil
+
+	if len(files) > 0 {
+		var err error
+		watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			fmt.Printf("could not create watcher %s\n", err)
+		}
+		defer watcher.Close()
+		fmt.Println("watching for file changes")
+
+		go func() {
+			for {
+				select {
+				case ev := <-watcher.Events:
+					if ev.Op&fsnotify.Write == fsnotify.Write {
+						fmt.Printf("modified files: %v\n", ev.Name)
+						reload <- true
+					}
+				case er := <-watcher.Errors:
+					fmt.Println("watcher error: ", er)
+				}
+			}
+		}()
+		addFiles(files)
+		http.Handle("/ws", socketHandler())
+		http.Handle("/livereload.js", scriptHandler())
+	}
+
+	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
+	http.Handle("/", gzHandler(fileHandler(root)))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func checkPort(port string) string {
@@ -93,16 +96,11 @@ func checkPort(port string) string {
 	return port
 }
 
-func addFiles(files []string, fileChan chan string) {
-
+func addFiles(files []string) {
 	for i := 0; i < len(files); i++ {
-		time.Sleep(10 * time.Millisecond)
-
 		if err := watcher.Add(files[i]); err != nil {
 			return
 		}
-		fileChan <- files[i]
-		fmt.Printf("added %s to watcher\n", files[i])
 	}
 }
 
@@ -171,17 +169,12 @@ func socketHandler() http.Handler {
 func writer(c *websocket.Conn) {
 	for {
 		select {
-		case ev := <-watcher.Events:
-			if ev.Op&fsnotify.Write == fsnotify.Write {
-				fmt.Printf("modified file: %s\n", ev.Name)
-				for cl := range clients {
-					if err := cl.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
-						return
-					}
+		case <-reload:
+			for cl := range clients {
+				if err := cl.WriteMessage(websocket.TextMessage, []byte("reload")); err != nil {
+					return
 				}
 			}
-		case err := <-watcher.Errors:
-			fmt.Printf("watch error %s:\n", err)
 		}
 	}
 }
