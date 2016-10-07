@@ -4,19 +4,18 @@ loco
 ![https://circleci.com/gh/julien/loco](https://circleci.com/gh/julien/loco.png?circle-token=722cb47155b6d2b3983203591655815031c46b08)
 
 
-An example http/livereload server
-with [Go](http://golang.org)
+An basic http server with [Go](http://golang.org)
 
 Usage
 =====
 
 ```shell
-loco -port=PORT -root=ROOT_DIRECTORY FILES
+loco -port=PORT -root=ROOT_DIRECTORY
 ```
 
 ```shell
 Usage of loco:
-  -port="3000": default port
+  -port="8000": default port
   -root=".": root directory
 ```
 
@@ -31,14 +30,9 @@ Usage of loco:
 
 + Start the server:
 
-  `loco -port 8000 -root . *.js # files are optional`
-
-+ If you want to be notified about file changes
-  include this `script` tag:
-
-  ```html
-  <!-- NOTE: change 8000 to the port you used to start the server -->
-  <script src="http://localhost:8000/livereload.js"></script>
-  ```
+  `loco -port 8000 -root .`
 
 + Check the [report card](http://goreportcard.com/report/julien/loco)
+
+
+
