@@ -27,7 +27,7 @@ func init() {
 func main() {
 	flag.Parse()
 	fmt.Printf("starting server: 0.0.0.0:%s - root directory: %s\n", port, path.Dir(root))
-	http.Handle("/", fileHandler(root))
+	http.Handle("/", noIconHandler(fileHandler(root)))
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -40,4 +40,14 @@ func checkPort(port string) string {
 
 func fileHandler(root string) http.Handler {
 	return http.FileServer(http.Dir(root))
+}
+
+func noIconHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := fmt.Sprintf("%s", r.URL)
+		if u == "/favicon.ico" {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
