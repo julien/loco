@@ -10,13 +10,13 @@ Usage
 =====
 
 ```shell
-loco -port=PORT -root=ROOT_DIRECTORY
+loco -p=PORT -r=ROOT_DIRECTORY
 ```
 
 ```shell
 Usage of loco:
-  -port="8000": default port
-  -root=".": root directory
+  -p="8000": default port
+  -r=".": root directory
 ```
 
 + Install with:
@@ -30,7 +30,11 @@ Usage of loco:
 
 + Start the server:
 
-  `loco -port 8000 -root .`
+  `loco`
+
+  or
+
+  `loco -p 8080 -r ./public`
 
 + Check the [report card](http://goreportcard.com/report/julien/loco)
 
