@@ -47,6 +47,7 @@ func noIconHandler(next http.Handler) http.Handler {
 		u := fmt.Sprintf("%s", r.URL)
 		if u == "/favicon.ico" {
 			w.WriteHeader(http.StatusOK)
+			return
 		}
 		next.ServeHTTP(w, r)
 	})
