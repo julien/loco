@@ -62,3 +62,17 @@ func TestGZWithoutHeader(t *testing.T) {
 		t.Errorf("got \"Content-Encoding\"")
 	}
 }
+
+func TestFavicon(t *testing.T) {
+	handler := noIconHandler(fileHandler("."))
+	req, _ := http.NewRequest("GET", "/favicon.ico", nil)
+
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("got: %v want 200", w.Code)
+	}
+
+}
