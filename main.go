@@ -20,8 +20,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&port, "port", defaultport, "default port")
-	flag.StringVar(&root, "root", ".", "root directory")
+	flag.StringVar(&port, "p", defaultport, "default port")
+	flag.StringVar(&root, "r", ".", "root directory")
 }
 
 func main() {
@@ -46,7 +46,7 @@ func noIconHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := fmt.Sprintf("%s", r.URL)
 		if u == "/favicon.ico" {
-			return
+			w.WriteHeader(http.StatusOK)
 		}
 		next.ServeHTTP(w, r)
 	})
